@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        android:key="default_pseudo"
+        android:title="Pseudo par défaut"
+        android:summary="Champ pseudo affiché par défaut" />
+
+    <Preference
+        android:key="clear_pseudo_history"
+        android:title="Vider l'historique des pseudos"
+        android:summary="Efface l'historique des pseudos saisis auparavant" />
+
+</PreferenceScreen>
