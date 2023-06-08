@@ -11,9 +11,13 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.preference.PreferenceManager
+import fr.ec.app.data.DataProvider
+import fr.ec.app.data.Post
 
+private var apiConnected = false
 
 class MainActivity : AppCompatActivity() {
+    val okButton = findViewById<Button>(R.id.button)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -27,31 +31,57 @@ class MainActivity : AppCompatActivity() {
 
         // Affiche le dernier pseudo de l'historique s'il n'est pas vide, sinon affiche le pseudo par défaut des préférences
         val pseudoSet = sharedPreferences.getStringSet("pseudo_history", HashSet())
-        val lastPseudo = pseudoSet?.lastOrNull() ?: sharedPreferences.getString("default_pseudo", "")
+        val lastPseudo =
+            pseudoSet?.lastOrNull() ?: sharedPreferences.getString("default_pseudo", "")
 
         val pseudoTextView = findViewById<TextView>(R.id.pseudo_input)
         pseudoTextView.text = lastPseudo
 
 
 
-        val okButton = findViewById<Button>(R.id.button)
 
         // Définit l'OnClickListener pour le bouton OK
         okButton.setOnClickListener {
             // Récupère le pseudo entré par l'utilisateur
             val pseudo = pseudoTextView.text.toString()
 
-            // Sauvegarde l'historique des pseudos dans les préférences partagées
-            pseudoSet?.add(pseudo)
-            val editor = sharedPreferences.edit()
-            editor.putStringSet("pseudo_history", pseudoSet)
-            editor.apply()
 
-            //Ouverture d'une nouvelle activité
-            val intent = Intent(this, ChoixListActivity::class.java)
-            intent.putExtra("pseudo", pseudo)
-            startActivity(intent)
+            // Vérifie si un pseudo a été renseigné et si la connexion à l'API est valide
+            if (pseudo.isNotEmpty() && apiConnected) {
+
+                // Sauvegarde l'historique des pseudos dans les préférences partagées
+                pseudoSet?.add(pseudo)
+                val editor = sharedPreferences.edit()
+                editor.putStringSet("pseudo_history", pseudoSet)
+                editor.apply()
+
+                //Ouverture d'une nouvelle activité
+                val intent = Intent(this, ChoixListActivity::class.java)
+                intent.putExtra("pseudo", pseudo)
+                startActivity(intent)
+            }
         }
+        // Appeler la fonction getData de DataProvider pour vérifier la connexion à l'API
+        DataProvider.getData(::handleApiResponse, ::handleApiError)
+    }
+
+    private fun handleApiResponse(posts: List<Post>) {
+        // Gérer la réponse de l'API
+        apiConnected = true
+
+        // Activer le bouton "OK"
+        okButton.isEnabled = true
+    }
+
+    private fun handleApiError(error: Throwable) {
+        // Gérer l'erreur de l'API
+        apiConnected = false
+
+        // Désactiver le bouton "OK"
+        okButton.isEnabled = false
+
+        // Afficher un message d'erreur ou effectuer d'autres actions appropriées
+        Log.e("MainActivity", "Erreur de connexion à l'API: ${error.message}")
     }
 
 
