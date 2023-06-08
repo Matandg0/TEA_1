@@ -11,4 +11,11 @@
         android:title="Vider l'historique des pseudos"
         android:summary="Efface l'historique des pseudos saisis auparavant" />
 
+    <EditTextPreference
+        android:key="post_api_url"
+        android:title="POST_API_URL"
+        android:summary="Enter the URL"
+        android:defaultValue=""
+        android:inputType="text" />
+
 </PreferenceScreen>
