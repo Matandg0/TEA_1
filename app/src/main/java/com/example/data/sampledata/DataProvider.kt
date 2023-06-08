@@ -1,5 +1,6 @@
 package fr.ec.app.data
 
+import androidx.preference.PreferenceManager
 import com.google.gson.Gson
 import fr.ec.app.data.api.response.HashResponse
 import fr.ec.app.data.api.response.PostResponse
@@ -14,6 +15,7 @@ object DataProvider {
 
     private val BACKGOURND = Executors.newFixedThreadPool(2)
 
+
     private val POST_API_URL =
         "http://tomnab.fr/todo-api/"
 
@@ -22,7 +24,7 @@ object DataProvider {
     fun getData(onSuccess :(List<Post>)->Unit,onError : (Throwable)->Unit)  {
         BACKGOURND.submit {
             try {
-                val json :String? = makeAuthentication()
+                val json :String? = makeAuthentication("","")
                 val postsResponse = gson.fromJson<PostsResponse>(json, PostsResponse::class.java)
                 val postList = postsResponse.posts.filter { it.name !=  null && it.tagline != null && it.thumbnail?.url != null }.map {
                     Post(
@@ -40,10 +42,10 @@ object DataProvider {
         }
     }
 
-    fun getHash(onSuccess :(String)->Unit,onError : (Throwable)->Unit)  {
+    fun getHash(user: String, password: String,onSuccess :(String)->Unit,onError : (Throwable)->Unit)  {
         BACKGOURND.submit {
             try {
-                val json :String? = makeAuthentication()
+                val json :String? = makeAuthentication(user,password)
                 val HashResponse = gson.fromJson<HashResponse>(json, HashResponse::class.java)
                 val hash = HashResponse.hash
 
@@ -57,11 +59,11 @@ object DataProvider {
         }
     }
 
-    private fun makeAuthentication(): String? {
+    private fun makeAuthentication(user : String, password : String): String? {
         var urlConnection: HttpURLConnection? = null
         var reader: BufferedReader? = null
         try {
-            urlConnection = URL(POST_API_URL + "authenticate?user=to&password=web").openConnection() as HttpURLConnection
+            urlConnection = URL(POST_API_URL + "authenticate?user=" + user + "&password=" + password).openConnection() as HttpURLConnection
             urlConnection.requestMethod = "POST"
             urlConnection.connect()
 
