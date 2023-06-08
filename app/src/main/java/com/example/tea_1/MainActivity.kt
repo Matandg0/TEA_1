@@ -15,9 +15,10 @@ import fr.ec.app.data.DataProvider
 import fr.ec.app.data.Post
 
 private var apiConnected = false
+private lateinit var okButton: Button
+
 
 class MainActivity : AppCompatActivity() {
-    val okButton = findViewById<Button>(R.id.button)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -37,9 +38,26 @@ class MainActivity : AppCompatActivity() {
         val pseudoTextView = findViewById<TextView>(R.id.pseudo_input)
         pseudoTextView.text = lastPseudo
 
+        DataProvider.getHash(
+            onSuccess = { hash ->
+                // Connexion réussie
+                this@MainActivity.runOnUiThread {
+                    handleApiResponse(hash)
+                }
+            },
+            onError = { error ->
+                // Erreur de connexion
+                this@MainActivity.runOnUiThread {
+                    // Mettez ici le code à exécuter lorsque la connexion a échoué
+                    // Gérez l'erreur
+                    handleApiError(error)
+                }
+            }
+        )
 
 
 
+        okButton = findViewById<Button>(R.id.button)
         // Définit l'OnClickListener pour le bouton OK
         okButton.setOnClickListener {
             // Récupère le pseudo entré par l'utilisateur
@@ -61,11 +79,13 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
         }
-        // Appeler la fonction getData de DataProvider pour vérifier la connexion à l'API
-        DataProvider.getData(::handleApiResponse, ::handleApiError)
     }
 
-    private fun handleApiResponse(posts: List<Post>) {
+    private fun handleApiResponse(hash : String) {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val editor = sharedPreferences.edit()
+        editor.putString("token", hash)
+        Log.e("MainActivity","API Connected")
         // Gérer la réponse de l'API
         apiConnected = true
 

@@ -1,6 +1,7 @@
 package fr.ec.app.data
 
 import com.google.gson.Gson
+import fr.ec.app.data.api.response.HashResponse
 import fr.ec.app.data.api.response.PostResponse
 import fr.ec.app.data.api.response.PostsResponse
 import java.io.BufferedReader
@@ -39,11 +40,28 @@ object DataProvider {
         }
     }
 
+    fun getHash(onSuccess :(String)->Unit,onError : (Throwable)->Unit)  {
+        BACKGOURND.submit {
+            try {
+                val json :String? = makeAuthentication()
+                val HashResponse = gson.fromJson<HashResponse>(json, HashResponse::class.java)
+                val hash = HashResponse.hash
+
+                if (hash != null) {
+                    onSuccess(hash)
+                }
+
+            }catch (e :Exception) {
+                onError(e)
+            }
+        }
+    }
+
     private fun makeAuthentication(): String? {
         var urlConnection: HttpURLConnection? = null
         var reader: BufferedReader? = null
         try {
-            urlConnection = URL(POST_API_URL + "authenticate?user=tom&password=web").openConnection() as HttpURLConnection
+            urlConnection = URL(POST_API_URL + "authenticate?user=to&password=web").openConnection() as HttpURLConnection
             urlConnection.requestMethod = "POST"
             urlConnection.connect()
 

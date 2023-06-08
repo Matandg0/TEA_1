@@ -6,3 +6,7 @@ data class PostResponse(
     val tagline : String?,
     val thumbnail : Thumbnail?
 )
+
+data class HashResponse(
+    val hash : String?
+)
