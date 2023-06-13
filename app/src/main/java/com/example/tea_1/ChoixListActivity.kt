@@ -4,17 +4,19 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import fr.ec.app.data.DataProvider
+import fr.ec.app.data.api.response.PostResponse
 
 class ChoixListActivity : AppCompatActivity() {
     @SuppressLint("MissingInflatedId")
@@ -26,30 +28,50 @@ class ChoixListActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
 
 
-
         val pseudo = intent.getStringExtra("pseudo")
+        DataProvider.getData(
+            this,
+            "lists",
+            true,
+            onSuccess = { list ->
+                this@ChoixListActivity.runOnUiThread {
+                    val loadedList = list
 
-        // ------ Affichage de la liste associée au pseudo ----
+                    // Affichage de la liste chargée
+                    val list = findViewById<RecyclerView>(R.id.list)
+                    list.adapter = PostAdapter(dataSet = loadedList, listener = object : OnItemClickListener {
+                        override fun onItemClick(itemId: Int) {
+                            val intent = Intent(this@ChoixListActivity, ShowListActivity::class.java)
+                            intent.putExtra("itemId", itemId)
+                            intent.putExtra("pseudo", pseudo)
+                            startActivity(intent)
+                        }
+                    })
+                    list.layoutManager = LinearLayoutManager(this)
+
+                    Log.e("ChoixListActivity", "Liste recuperé")
+                }
+            },
+            onError =  { error ->
+                this@ChoixListActivity.runOnUiThread {
+                    handleApiError(error)
+                }
+
+            }
+        )
+        // ------ Récuperation des listes associés à ce pseudo ----- //
+
+        // ------ Affichage de la liste associée au pseudo ----- //
         // Charger la liste à partir des SharedPreferences
-        val loadedList = ListProfile.loadList(this, pseudo)
+        //val loadedList = ListProfile.loadList(this, pseudo)
 
         // Extraire les noms de chaque élément de loadedList
-        val namesList = loadedList?.map { it.Nom }
-        val itemList = namesList?.mapIndexed { index, name ->
-            ListProfile.Item(index + 1, name)
-        }
+        //val namesList = loadedList.posts?.map { it.label }
+        //val itemList = loadedList.posts?.mapIndexed { index, name ->
+        //    ListProfile.Item(index + 1, name)
+        //}
 
-        // Affichage de la liste chargée
-        val list = findViewById<RecyclerView>(R.id.list)
-        list.adapter = PostAdapter(dataSet = itemList, listener = object : OnItemClickListener {
-            override fun onItemClick(itemId: Int) {
-                val intent = Intent(this@ChoixListActivity, ShowListActivity::class.java)
-                intent.putExtra("itemId", itemId)
-                intent.putExtra("pseudo", pseudo)
-                startActivity(intent)
-            }
-        })
-        list.layoutManager = LinearLayoutManager(this)
+
 
 
 
@@ -75,6 +97,12 @@ class ChoixListActivity : AppCompatActivity() {
 
 
 
+    private fun handleApiError(error: Throwable) {
+        // Afficher un message d'erreur ou effectuer d'autres actions appropriées
+        Log.e("ChoixListActivity", "Erreur de récupération des listes: ${error.message}")
+
+        //Afficher à l'écran l'erreur
+    }
 
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -95,7 +123,7 @@ class ChoixListActivity : AppCompatActivity() {
 
 
     class PostAdapter(
-        private val dataSet: List<ListProfile.Item>?,
+        private val dataSet: List<PostResponse>?,
         private val listener: OnItemClickListener
     ) : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
 
@@ -110,11 +138,11 @@ class ChoixListActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
             val elt = dataSet?.get(position)
-            holder.bind(elt?.name)
+            holder.bind(elt?.label)
 
             holder.itemView.setOnClickListener {
                 if (elt != null) {
-                    listener.onItemClick(elt.id)
+                    elt.id?.let { it1 -> listener.onItemClick(it1.toInt()) }
                 }
             }
         }

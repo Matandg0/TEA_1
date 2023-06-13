@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity() {
             if (pseudo.isNotEmpty() ) {
 
                 DataProvider.getHash(
+                    this,
                     user = pseudo,
                     password = password,
                     onSuccess = { hash ->
@@ -99,13 +100,16 @@ class MainActivity : AppCompatActivity() {
     private fun handleConnection(hash : String) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         val editor = sharedPreferences.edit()
-        editor.putString("token", hash)
-        Log.e("MainActivity","API Connected")
+        editor.putString("token", hash as String)
+        editor.apply()
+        Log.e("MainActivity","API Connected with hash :$hash")
     }
 
     private fun handleApiError(error: Throwable) {
         // Afficher un message d'erreur ou effectuer d'autres actions appropriées
         Log.e("MainActivity", "Erreur de connexion à l'API: ${error.message}")
+
+        //Afficher à l'écran l'erreur
     }
 
     private fun testConnection() {

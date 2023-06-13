@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
@@ -14,6 +15,8 @@ import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import fr.ec.app.data.DataProvider
+import fr.ec.app.data.api.response.PostResponse
 
 
 class ShowListActivity : AppCompatActivity() {
@@ -31,14 +34,32 @@ class ShowListActivity : AppCompatActivity() {
 
         // ------ Affichage de la liste associée au pseudo ----
         // Charger la liste à partir des SharedPreferences
-        val loadedList = ListProfile.loadList(this, pseudo + "_" + itemId.toString())
+        DataProvider.getData(
+            this,
+            "lists/$itemId/items",
+            false,
+            onSuccess = { list ->
+                this@ShowListActivity.runOnUiThread {
+                    val loadedList = list
 
-        // Extraire les noms de chaque élément de loadedList
-        val namesList = loadedList?.map { it.Nom }
+                    // Affichage de la liste chargée
+                    val list = findViewById<RecyclerView>(R.id.listItem)
+                    list.adapter = PostAdapter(dataSet = loadedList)
+                    list.layoutManager = LinearLayoutManager(this)
+
+                    Log.e("ChoixListActivity", "Liste recuperé")
+                }
+            },
+            onError =  { error ->
+                this@ShowListActivity.runOnUiThread {
+                    handleApiError(error)
+                }
+
+            }
+        )
 
         val list = findViewById<RecyclerView>(R.id.listItem)
-        list.adapter = PostAdapter(dataSet = namesList)
-        list.layoutManager = LinearLayoutManager(this)
+
 
 
         // Ajoute item quand on clique sur le bouton
@@ -62,7 +83,7 @@ class ShowListActivity : AppCompatActivity() {
 
 
     class PostAdapter(
-        private val dataSet: List<String>?,
+        private val dataSet: List<PostResponse>?,
     ) : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
@@ -77,7 +98,9 @@ class ShowListActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
             val elt = dataSet?.get(position)
-            holder.bind(elt)
+            if (elt != null) {
+                holder.bind(elt.label)
+            }
 
         }
 
@@ -88,6 +111,8 @@ class ShowListActivity : AppCompatActivity() {
             }
         }
     }
+
+
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_options, menu)
@@ -103,5 +128,12 @@ class ShowListActivity : AppCompatActivity() {
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun handleApiError(error: Throwable) {
+        // Afficher un message d'erreur ou effectuer d'autres actions appropriées
+        Log.e("MainActivity", "Erreur de connexion à l'API: ${error.message}")
+
+        //Afficher à l'écran l'erreur
     }
 }
