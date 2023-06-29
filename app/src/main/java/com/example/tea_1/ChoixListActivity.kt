@@ -13,12 +13,18 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.data.sampledata.DatabaseProvider
 import fr.ec.app.data.DataProvider
 import fr.ec.app.data.api.response.PostResponse
+import kotlinx.coroutines.launch
 
 class ChoixListActivity : AppCompatActivity() {
+
+    private var pseudo : String? = null
+    private var webConnected : Boolean = false
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,38 +33,69 @@ class ChoixListActivity : AppCompatActivity() {
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
 
+        val databaseProvider = DatabaseProvider(application)
 
-        val pseudo = intent.getStringExtra("pseudo")
-        DataProvider.getData(
-            this,
-            "lists",
-            true,
-            onSuccess = { list ->
-                this@ChoixListActivity.runOnUiThread {
-                    val loadedList = list
 
-                    // Affichage de la liste chargée
-                    val list = findViewById<RecyclerView>(R.id.list)
-                    list.adapter = PostAdapter(dataSet = loadedList, listener = object : OnItemClickListener {
-                        override fun onItemClick(itemId: Int) {
-                            val intent = Intent(this@ChoixListActivity, ShowListActivity::class.java)
-                            intent.putExtra("itemId", itemId)
-                            intent.putExtra("pseudo", pseudo)
-                            startActivity(intent)
+
+        pseudo = intent.getStringExtra("pseudo")
+        webConnected = intent.getBooleanExtra("webConnected",false)
+
+        if (webConnected){
+            DataProvider.getData(
+                this,
+                "lists",
+                true,
+                onSuccess = { list ->
+                    this@ChoixListActivity.runOnUiThread {
+                        val loadedList = list
+
+                        //Enregistrement Listes dans Base de données
+                        lifecycleScope.launch {
+                            try {
+                                databaseProvider.saveLists(list)
+
+                            } catch (e: Exception) {
+                                Log.e("Activity", "Error saving lists: ${e.message}")
+                            }
                         }
-                    })
-                    list.layoutManager = LinearLayoutManager(this)
 
-                    Log.e("ChoixListActivity", "Liste recuperé")
-                }
-            },
-            onError =  { error ->
-                this@ChoixListActivity.runOnUiThread {
-                    handleApiError(error)
-                }
+                        affichageList(loadedList)
 
+                    }
+                },
+                onError =  { error ->
+                    this@ChoixListActivity.runOnUiThread {
+                        handleApiError(error)
+
+                        lifecycleScope.launch {
+                            try {
+                                val loadedList = databaseProvider.getLists()
+                                affichageList(loadedList)
+
+
+                            } catch (e: Exception) {
+                                Log.e("Activity", "Error retrieving lists: ${e.message}")
+                            }
+                        }
+                    }
+
+                }
+            )
+        } else {
+
+            lifecycleScope.launch {
+                try {
+                    val loadedList = databaseProvider.getLists()
+                    affichageList(loadedList)
+
+
+                } catch (e: Exception) {
+                    Log.e("Activity", "Error retrieving lists: ${e.message}")
+                }
             }
-        )
+        }
+
+
         // ------ Récuperation des listes associés à ce pseudo ----- //
 
         // ------ Affichage de la liste associée au pseudo ----- //
@@ -92,6 +129,23 @@ class ChoixListActivity : AppCompatActivity() {
 
 
 
+    }
+
+    private fun affichageList(loadedList : List<PostResponse>) {
+        // Affichage de la liste chargée
+        val list = findViewById<RecyclerView>(R.id.list)
+        list.adapter = PostAdapter(dataSet = loadedList, listener = object : OnItemClickListener {
+            override fun onItemClick(itemId: Int) {
+                val intent = Intent(this@ChoixListActivity, ShowListActivity::class.java)
+                intent.putExtra("itemId", itemId)
+                intent.putExtra("pseudo", pseudo)
+                intent.putExtra("webConnected", webConnected)
+                startActivity(intent)
+            }
+        })
+        list.layoutManager = LinearLayoutManager(this)
+
+        Log.e("ChoixListActivity", "Liste recuperé")
     }
 
 

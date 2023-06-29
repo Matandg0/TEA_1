@@ -72,6 +72,7 @@ class MainActivity : AppCompatActivity() {
                             //Ouverture d'une nouvelle activité
                             val intent = Intent(this, ChoixListActivity::class.java)
                             intent.putExtra("pseudo", pseudo)
+                            intent.putExtra("webConnected", webConnected)
                             startActivity(intent)
                         }
                     },
@@ -81,6 +82,11 @@ class MainActivity : AppCompatActivity() {
                             // Mettez ici le code à exécuter lorsque la connexion a échoué
                             // Gérez l'erreur
                             handleApiError(error)
+                            //Ouverture d'une nouvelle activité
+                            val intent = Intent(this, ChoixListActivity::class.java)
+                            intent.putExtra("pseudo", pseudo)
+                            intent.putExtra("webConnected", webConnected)
+                            startActivity(intent)
                         }
                     }
                 )
@@ -118,8 +124,6 @@ class MainActivity : AppCompatActivity() {
         val networkInfo = connectivityManager.activeNetworkInfo
         if (networkInfo != null && networkInfo.isConnected) {
             webConnected = true
-        } else {
-            okButton.isEnabled = false
         }
     }
 

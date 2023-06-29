@@ -13,10 +13,13 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.data.sampledata.DatabaseProvider
 import fr.ec.app.data.DataProvider
 import fr.ec.app.data.api.response.PostResponse
+import kotlinx.coroutines.launch
 
 
 class ShowListActivity : AppCompatActivity() {
@@ -31,32 +34,69 @@ class ShowListActivity : AppCompatActivity() {
 
         val itemId = intent.getIntExtra("itemId", -1)
         val pseudo = intent.getStringExtra("pseudo")
+        val webConnected = intent.getBooleanExtra("webconnected",false)
+
+        val databaseProvider = DatabaseProvider(application)
 
         // ------ Affichage de la liste associée au pseudo ----
         // Charger la liste à partir des SharedPreferences
-        DataProvider.getData(
-            this,
-            "lists/$itemId/items",
-            false,
-            onSuccess = { list ->
-                this@ShowListActivity.runOnUiThread {
-                    val loadedList = list
+        if (webConnected){
+            DataProvider.getData(
+                this,
+                "lists/$itemId/items",
+                false,
+                onSuccess = { list ->
+                    this@ShowListActivity.runOnUiThread {
+                        val loadedList = list
 
-                    // Affichage de la liste chargée
-                    val list = findViewById<RecyclerView>(R.id.listItem)
-                    list.adapter = PostAdapter(dataSet = loadedList)
-                    list.layoutManager = LinearLayoutManager(this)
 
-                    Log.e("ChoixListActivity", "Liste recuperé")
+                        //Enregistrement Listes dans Base de données
+                        lifecycleScope.launch {
+                            try {
+                                databaseProvider.savePosts(list,itemId)
+                            } catch (e: Exception) {
+                                Log.e("Activity", "Error saving lists: ${e.message}")
+                            }
+
+                            affichageListe(loadedList)
+
+                        }
+
+                    }
+                },
+                onError =  { error ->
+                    this@ShowListActivity.runOnUiThread {
+                        handleApiError(error)
+
+                        lifecycleScope.launch {
+                            try {
+                                val loadedList = databaseProvider.getPosts(itemId)
+                                affichageListe(loadedList)
+
+                            } catch (e: Exception) {
+                                Log.e("Activity", "Error saving lists: ${e.message}")
+                            }
+
+
+                        }
+                    }
+
                 }
-            },
-            onError =  { error ->
-                this@ShowListActivity.runOnUiThread {
-                    handleApiError(error)
+            )
+        } else {
+            lifecycleScope.launch {
+                try {
+                    val loadedList = databaseProvider.getPosts(itemId)
+                    affichageListe(loadedList)
+
+                } catch (e: Exception) {
+                    Log.e("Activity", "Error saving lists: ${e.message}")
                 }
+
 
             }
-        )
+        }
+
 
         val list = findViewById<RecyclerView>(R.id.listItem)
 
@@ -78,6 +118,15 @@ class ShowListActivity : AppCompatActivity() {
         }
 
 
+    }
+
+    private fun affichageListe(loadedList : List<PostResponse>){
+        // Affichage de la liste chargée
+        val list = findViewById<RecyclerView>(R.id.listItem)
+        list.adapter = PostAdapter(dataSet = loadedList)
+        list.layoutManager = LinearLayoutManager(this)
+
+        Log.e("ChoixListActivity", "Liste recuperé")
     }
 
 
